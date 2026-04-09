@@ -134,6 +134,8 @@ void tpms_scene_receiver_on_enter(void* context) {
     tpms_scene_receiver_update_statusbar(app);
 
     tpms_view_receiver_set_callback(app->tpms_receiver, tpms_scene_receiver_callback, app);
+    tpms_view_receiver_set_relearn_enabled(
+        app->tpms_receiver, app->relearn == TPMSRelearnOn);
     subghz_receiver_set_rx_callback(
         app->txrx->receiver, tpms_scene_receiver_add_to_history_callback, app);
 

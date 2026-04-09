@@ -17,6 +17,8 @@ void tpms_view_receiver_set_callback(
     TPMSReceiverCallback callback,
     void* context);
 
+void tpms_view_receiver_set_relearn_enabled(TPMSReceiver* tpms_receiver, bool enabled);
+
 TPMSReceiver* tpms_view_receiver_alloc();
 
 void tpms_view_receiver_free(TPMSReceiver* tpms_receiver);
