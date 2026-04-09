@@ -1,10 +1,10 @@
-#include "tpms_receiver.h"
+#include "../protocols/tpms_generic.h"
 #include "../tpms_app_i.h"
 #include "tpms_icons.h"
-#include "../protocols/tpms_generic.h"
-#include <input/input.h>
-#include <gui/elements.h>
+#include "tpms_receiver.h"
 #include <float_tools.h>
+#include <gui/elements.h>
+#include <input/input.h>
 
 struct TPMSReceiverInfo {
     View* view;
@@ -136,7 +136,7 @@ void tpms_view_receiver_info_draw(Canvas* canvas, TPMSReceiverInfoModel* model) 
 
 bool tpms_view_receiver_info_input(InputEvent* event, void* context) {
     furi_assert(context);
-    //TPMSReceiverInfo* tpms_receiver_info = context;
+    // TPMSReceiverInfo* tpms_receiver_info = context;
 
     if(event->key == InputKeyBack) {
         return false;

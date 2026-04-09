@@ -1,7 +1,7 @@
 #include "tpms_generic.h"
-#include <lib/toolbox/stream/stream.h>
-#include <lib/flipper_format/flipper_format_i.h>
 #include "../helpers/tpms_types.h"
+#include <lib/flipper_format/flipper_format_i.h>
+#include <lib/toolbox/stream/stream.h>
 
 #define TAG "TPMSBlockGeneric"
 
@@ -110,7 +110,7 @@ SubGhzProtocolStatus tpms_block_generic_serialize(
             break;
         }
 
-        //DATE AGE set
+        // DATE AGE set
         DateTime curr_dt;
         furi_hal_rtc_get_datetime(&curr_dt);
         uint32_t curr_ts = datetime_datetime_to_timestamp(&curr_dt);

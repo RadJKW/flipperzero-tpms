@@ -1,50 +1,63 @@
 #include "../tpms_app_i.h"
 
-#define TAG "TPMSRelearn"
-
 enum TPMSRelearnSetting {
     TPMSRelearnSettingOff,
     TPMSRelearnSettingOn,
     TPMSRelearnSettingNum,
 };
 
-const char* const relearn_setting_text[TPMSRelearnSettingNum] = {
+static const char* const relearn_setting_text[TPMSRelearnSettingNum] = {
     "OFF",
     "ON",
 };
 
-enum TPMSRelearnType {
-    TPMSRelearnCommon, // Just signal without data
-    // TPMSRelearnGM_FORD,
-    // TPMSRelearnAnotherOEM,
-    TPMSRelearnTypeNum,
+static const char* const relearn_pattern_text[] = {
+    "Continuous",
+    "Burst 100/100",
+    "Burst 250/250",
+    "Burst 500/100",
+    "Burst 100/500",
 };
 
-const char* const relearn_type_text[TPMSRelearnTypeNum] = {
-    "Common",
+static const char* const relearn_runtime_text[] = {
+    "Toggle",
+    "3s",
+    "5s",
+    "10s",
+};
+
+static const char* const relearn_duty_text[] = {
+    "33%",
+    "50%",
+    "66%",
 };
 
 static void tpms_scene_relearn_setting_callback(VariableItem* item) {
     TPMSApp* app = variable_item_get_context(item);
     uint8_t index = variable_item_get_current_value_index(item);
-    if(index == TPMSRelearnSettingOn) {
-        app->relearn = TPMSRelearnOn;
-    } else {
-        app->relearn = TPMSRelearnOff;
-    }
+    app->relearn = (index == TPMSRelearnSettingOn) ? TPMSRelearnOn : TPMSRelearnOff;
     variable_item_set_current_value_text(item, relearn_setting_text[index]);
 }
 
-static void tpms_scene_relearn_type_callback(VariableItem* item) {
+static void tpms_scene_relearn_pattern_callback(VariableItem* item) {
     TPMSApp* app = variable_item_get_context(item);
     uint8_t index = variable_item_get_current_value_index(item);
-    if(index == TPMSRelearnCommon) {
-        app->relearn_type = TPMSRelearnTypeCommon;
-    } else {
-        FURI_LOG_E(TAG, "Relearn type %d not implemented", index);
-        return;
-    }
-    variable_item_set_current_value_text(item, relearn_type_text[index]);
+    app->relearn_pattern = index;
+    variable_item_set_current_value_text(item, relearn_pattern_text[index]);
+}
+
+static void tpms_scene_relearn_runtime_callback(VariableItem* item) {
+    TPMSApp* app = variable_item_get_context(item);
+    uint8_t index = variable_item_get_current_value_index(item);
+    app->relearn_runtime = index;
+    variable_item_set_current_value_text(item, relearn_runtime_text[index]);
+}
+
+static void tpms_scene_relearn_duty_callback(VariableItem* item) {
+    TPMSApp* app = variable_item_get_context(item);
+    uint8_t index = variable_item_get_current_value_index(item);
+    app->relearn_duty = index;
+    variable_item_set_current_value_text(item, relearn_duty_text[index]);
 }
 
 void tpms_scene_relearn_config_on_enter(void* context) {
@@ -58,25 +71,39 @@ void tpms_scene_relearn_config_on_enter(void* context) {
         TPMSRelearnSettingNum,
         tpms_scene_relearn_setting_callback,
         app);
-    // scene_manager_set_scene_state(app->scene_manager, TPMSSceneReceiverConfig, (uint32_t)item);
     variable_item_set_current_value_index(item, app->relearn);
     variable_item_set_current_value_text(item, relearn_setting_text[app->relearn]);
 
     item = variable_item_list_add(
-        var_item_list, "Type", TPMSRelearnTypeNum, tpms_scene_relearn_type_callback, app);
-    variable_item_set_current_value_index(item, app->relearn_type);
-    variable_item_set_current_value_text(item, relearn_type_text[app->relearn_type]);
+        var_item_list,
+        "Pattern",
+        COUNT_OF(relearn_pattern_text),
+        tpms_scene_relearn_pattern_callback,
+        app);
+    variable_item_set_current_value_index(item, app->relearn_pattern);
+    variable_item_set_current_value_text(item, relearn_pattern_text[app->relearn_pattern]);
+
+    item = variable_item_list_add(
+        var_item_list,
+        "Runtime",
+        COUNT_OF(relearn_runtime_text),
+        tpms_scene_relearn_runtime_callback,
+        app);
+    variable_item_set_current_value_index(item, app->relearn_runtime);
+    variable_item_set_current_value_text(item, relearn_runtime_text[app->relearn_runtime]);
+
+    item = variable_item_list_add(
+        var_item_list, "Duty", COUNT_OF(relearn_duty_text), tpms_scene_relearn_duty_callback, app);
+    variable_item_set_current_value_index(item, app->relearn_duty);
+    variable_item_set_current_value_text(item, relearn_duty_text[app->relearn_duty]);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, TPMSViewVariableItemList);
 }
-bool tpms_scene_relearn_config_on_event(void* context, SceneManagerEvent event) {
-    TPMSApp* app = context;
-    UNUSED(app);
-    bool consumed = false;
 
-    if(event.type == SceneManagerEventTypeCustom) {
-    }
-    return consumed;
+bool tpms_scene_relearn_config_on_event(void* context, SceneManagerEvent event) {
+    UNUSED(context);
+    UNUSED(event);
+    return false;
 }
 
 void tpms_scene_relearn_config_on_exit(void* context) {

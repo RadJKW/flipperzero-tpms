@@ -1,6 +1,6 @@
-#include "../tpms_app_i.h"
 #include "../helpers/tpms_types.h"
 #include "../protocols/protocol_items.h"
+#include "../tpms_app_i.h"
 
 void tpms_scene_about_widget_callback(GuiButtonType result, InputType type, void* context) {
     TPMSApp* app = context;

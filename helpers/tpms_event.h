@@ -1,7 +1,7 @@
 #pragma once
 
 typedef enum {
-    //TPMSCustomEvent
+    // TPMSCustomEvent
     TPMSCustomEventStartId = 100,
 
     TPMSCustomEventSceneSettingLock,

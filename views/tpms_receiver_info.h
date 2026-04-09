@@ -1,8 +1,8 @@
 #pragma once
 
-#include <gui/view.h>
-#include "../helpers/tpms_types.h"
 #include "../helpers/tpms_event.h"
+#include "../helpers/tpms_types.h"
+#include <gui/view.h>
 #include <lib/flipper_format/flipper_format.h>
 
 typedef struct TPMSReceiverInfo TPMSReceiverInfo;

@@ -1,18 +1,18 @@
 #include "tpms_receiver.h"
 #include "../tpms_app_i.h"
-#include <tpms_icons.h>
 #include <math.h>
+#include <tpms_icons.h>
 
-#include <input/input.h>
 #include <gui/elements.h>
+#include <input/input.h>
 #include <m-array.h>
 
 #define TAG "TPMSReceiver"
 
 #define FRAME_HEIGHT 12
-#define MAX_LEN_PX 112
-#define MENU_ITEMS 4u
-#define UNLOCK_CNT 3
+#define MAX_LEN_PX   112
+#define MENU_ITEMS   4u
+#define UNLOCK_CNT   3
 
 #define SUBGHZ_RAW_THRESHOLD_MIN -90.0f
 typedef struct {
@@ -48,8 +48,14 @@ struct TPMSReceiver {
     TPMSLock lock;
     uint8_t lock_count;
     FuriTimer* lock_timer;
-    FuriTimer* relearn_timer;
+    FuriTimer* relearn_runtime_timer;
+    FuriTimer* relearn_burst_timer;
     bool relearn_active;
+    bool relearn_burst_phase_on;
+    TPMSRelearn relearn;
+    TPMSRelearnPattern relearn_pattern;
+    TPMSRelearnRuntime relearn_runtime;
+    TPMSRelearnDuty relearn_duty;
     View* view;
     TPMSReceiverCallback callback;
     void* context;
@@ -66,7 +72,23 @@ typedef struct {
     TPMSReceiverBarShow bar_show;
     uint8_t u_rssi;
     bool external_radio;
+    bool relearn_active;
+    FuriString* relearn_status_str;
 } TPMSReceiverModel;
+
+typedef struct {
+    const char* name;
+    uint16_t on_ms;
+    uint16_t off_ms;
+} TPMSRelearnPatternDef;
+
+static const TPMSRelearnPatternDef tpms_relearn_pattern_defs[] = {
+    [TPMSRelearnPatternContinuous] = {"CONT", 0, 0},
+    [TPMSRelearnPatternBurstFast100_100] = {"B100/100", 100, 100},
+    [TPMSRelearnPatternBurstSlow250_250] = {"B250/250", 250, 250},
+    [TPMSRelearnPatternBurstLongOn500_100] = {"B500/100", 500, 100},
+    [TPMSRelearnPatternBurstLongOff100_500] = {"B100/500", 100, 500},
+};
 
 void tpms_view_receiver_set_rssi(TPMSReceiver* instance, float rssi) {
     furi_assert(instance);
@@ -225,7 +247,8 @@ void tpms_view_receiver_draw(Canvas* canvas, TPMSReceiverModel* model) {
         } else {
             canvas_set_color(canvas, ColorBlack);
         }
-        // canvas_draw_icon(canvas, 4, 2 + i * FRAME_HEIGHT, ReceiverItemIcons[item_menu->type]);
+        // canvas_draw_icon(canvas, 4, 2 + i * FRAME_HEIGHT,
+        // ReceiverItemIcons[item_menu->type]);
         canvas_draw_str(canvas, 4, 9 + i * FRAME_HEIGHT, furi_string_get_cstr(str_buff));
         furi_string_reset(str_buff);
     }
@@ -244,6 +267,10 @@ void tpms_view_receiver_draw(Canvas* canvas, TPMSReceiverModel* model) {
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str(canvas, 44, 10, model->external_radio ? "Ext" : "Int");
         canvas_draw_str(canvas, 70, 9, "-> to relearn");
+    }
+
+    if(model->relearn_active) {
+        canvas_draw_str(canvas, 2, 62, furi_string_get_cstr(model->relearn_status_str));
     }
 
     // Draw RSSI
@@ -301,18 +328,91 @@ static void tpms_relearn_stop(void* context) {
     TPMSReceiver* tpms_receiver = context;
     if(tpms_receiver->relearn_active) {
         tpms_receiver->relearn_active = false;
-        furi_timer_stop(tpms_receiver->relearn_timer);
+        furi_timer_stop(tpms_receiver->relearn_runtime_timer);
+        furi_timer_stop(tpms_receiver->relearn_burst_timer);
         furi_hal_rfid_tim_read_stop();
+        with_view_model(
+            tpms_receiver->view,
+            TPMSReceiverModel * model,
+            { model->relearn_active = false; },
+            true);
     }
 }
 
-static void tpms_relearn_start(void* context) {
+static float tpms_relearn_duty_to_float(TPMSRelearnDuty duty) {
+    switch(duty) {
+    case TPMSRelearnDuty33:
+        return 0.33f;
+    case TPMSRelearnDuty66:
+        return 0.66f;
+    case TPMSRelearnDuty50:
+    default:
+        return 0.5f;
+    }
+}
+
+static uint32_t tpms_relearn_runtime_to_ms(TPMSRelearnRuntime runtime) {
+    switch(runtime) {
+    case TPMSRelearnRuntime3s:
+        return 3000;
+    case TPMSRelearnRuntime5s:
+        return 5000;
+    case TPMSRelearnRuntime10s:
+        return 10000;
+    case TPMSRelearnRuntimeToggle:
+    default:
+        return 0;
+    }
+}
+
+static void tpms_relearn_burst_timer_callback(void* context) {
     furi_assert(context);
     TPMSReceiver* tpms_receiver = context;
-    if(tpms_receiver->relearn_active) tpms_relearn_stop(context);
+    if(!tpms_receiver->relearn_active) return;
+
+    const TPMSRelearnPatternDef* pattern =
+        &tpms_relearn_pattern_defs[tpms_receiver->relearn_pattern];
+    if((pattern->on_ms == 0) || (pattern->off_ms == 0)) return;
+
+    if(tpms_receiver->relearn_burst_phase_on) {
+        furi_hal_rfid_tim_read_stop();
+        tpms_receiver->relearn_burst_phase_on = false;
+        furi_timer_start(tpms_receiver->relearn_burst_timer, furi_ms_to_ticks(pattern->off_ms));
+    } else {
+        furi_hal_rfid_tim_read_start(
+            125000, tpms_relearn_duty_to_float(tpms_receiver->relearn_duty));
+        tpms_receiver->relearn_burst_phase_on = true;
+        furi_timer_start(tpms_receiver->relearn_burst_timer, furi_ms_to_ticks(pattern->on_ms));
+    }
+}
+
+static void tpms_relearn_start(TPMSReceiver* tpms_receiver) {
+    furi_assert(tpms_receiver);
+    if(tpms_receiver->relearn_active) tpms_relearn_stop(tpms_receiver);
     tpms_receiver->relearn_active = true;
-    furi_hal_rfid_tim_read_start(125000, 0.5);
-    furi_timer_start(tpms_receiver->relearn_timer, furi_ms_to_ticks(3000));
+
+    const TPMSRelearnPatternDef* pattern =
+        &tpms_relearn_pattern_defs[tpms_receiver->relearn_pattern];
+    furi_hal_rfid_tim_read_start(125000, tpms_relearn_duty_to_float(tpms_receiver->relearn_duty));
+
+    tpms_receiver->relearn_burst_phase_on = true;
+    if((pattern->on_ms != 0) && (pattern->off_ms != 0)) {
+        furi_timer_start(tpms_receiver->relearn_burst_timer, furi_ms_to_ticks(pattern->on_ms));
+    }
+
+    uint32_t runtime_ms = tpms_relearn_runtime_to_ms(tpms_receiver->relearn_runtime);
+    if(runtime_ms != 0) {
+        furi_timer_start(tpms_receiver->relearn_runtime_timer, furi_ms_to_ticks(runtime_ms));
+    }
+
+    with_view_model(
+        tpms_receiver->view,
+        TPMSReceiverModel * model,
+        {
+            model->relearn_active = true;
+            furi_string_printf(model->relearn_status_str, "LF ON %s", pattern->name);
+        },
+        true);
 }
 
 static void tpms_view_receiver_relearn_timer_callback(void* context) {
@@ -375,7 +475,17 @@ bool tpms_view_receiver_input(InputEvent* event, void* context) {
     } else if(event->key == InputKeyLeft && event->type == InputTypeShort) {
         tpms_receiver->callback(TPMSCustomEventViewReceiverConfig, tpms_receiver->context);
     } else if(event->key == InputKeyRight && event->type == InputTypeShort) {
-        tpms_relearn_start(tpms_receiver);
+        if(tpms_receiver->relearn == TPMSRelearnOn) {
+            if(tpms_receiver->relearn_runtime == TPMSRelearnRuntimeToggle) {
+                if(tpms_receiver->relearn_active) {
+                    tpms_relearn_stop(tpms_receiver);
+                } else {
+                    tpms_relearn_start(tpms_receiver);
+                }
+            } else {
+                tpms_relearn_start(tpms_receiver);
+            }
+        }
     } else if(event->key == InputKeyOk && event->type == InputTypeShort) {
         with_view_model(
             tpms_receiver->view,
@@ -407,6 +517,8 @@ void tpms_view_receiver_exit(void* context) {
             furi_string_reset(model->frequency_str);
             furi_string_reset(model->preset_str);
             furi_string_reset(model->history_stat_str);
+            furi_string_reset(model->relearn_status_str);
+            model->relearn_active = false;
                 for
                     M_EACH(item_menu, model->history->data, TPMSReceiverMenuItemArray_t) {
                         furi_string_free(item_menu->item_str);
@@ -430,6 +542,12 @@ TPMSReceiver* tpms_view_receiver_alloc() {
 
     tpms_receiver->lock = TPMSLockOff;
     tpms_receiver->lock_count = 0;
+    tpms_receiver->relearn = TPMSRelearnOn;
+    tpms_receiver->relearn_pattern = TPMSRelearnPatternContinuous;
+    tpms_receiver->relearn_runtime = TPMSRelearnRuntime3s;
+    tpms_receiver->relearn_duty = TPMSRelearnDuty50;
+    tpms_receiver->relearn_active = false;
+    tpms_receiver->relearn_burst_phase_on = false;
     view_allocate_model(tpms_receiver->view, ViewModelTypeLocking, sizeof(TPMSReceiverModel));
     view_set_context(tpms_receiver->view, tpms_receiver);
     view_set_draw_callback(tpms_receiver->view, (ViewDrawCallback)tpms_view_receiver_draw);
@@ -447,13 +565,17 @@ TPMSReceiver* tpms_view_receiver_alloc() {
             model->bar_show = TPMSReceiverBarShowDefault;
             model->history = malloc(sizeof(TPMSReceiverHistory));
             model->external_radio = false;
+            model->relearn_active = false;
+            model->relearn_status_str = furi_string_alloc();
             TPMSReceiverMenuItemArray_init(model->history->data);
         },
         true);
     tpms_receiver->lock_timer =
         furi_timer_alloc(tpms_view_receiver_lock_timer_callback, FuriTimerTypeOnce, tpms_receiver);
-    tpms_receiver->relearn_timer = furi_timer_alloc(
+    tpms_receiver->relearn_runtime_timer = furi_timer_alloc(
         tpms_view_receiver_relearn_timer_callback, FuriTimerTypeOnce, tpms_receiver);
+    tpms_receiver->relearn_burst_timer =
+        furi_timer_alloc(tpms_relearn_burst_timer_callback, FuriTimerTypeOnce, tpms_receiver);
     return tpms_receiver;
 }
 
@@ -467,6 +589,7 @@ void tpms_view_receiver_free(TPMSReceiver* tpms_receiver) {
             furi_string_free(model->frequency_str);
             furi_string_free(model->preset_str);
             furi_string_free(model->history_stat_str);
+            furi_string_free(model->relearn_status_str);
                 for
                     M_EACH(item_menu, model->history->data, TPMSReceiverMenuItemArray_t) {
                         furi_string_free(item_menu->item_str);
@@ -477,7 +600,8 @@ void tpms_view_receiver_free(TPMSReceiver* tpms_receiver) {
         },
         false);
     furi_timer_free(tpms_receiver->lock_timer);
-    furi_timer_free(tpms_receiver->relearn_timer);
+    furi_timer_free(tpms_receiver->relearn_runtime_timer);
+    furi_timer_free(tpms_receiver->relearn_burst_timer);
     view_free(tpms_receiver->view);
     free(tpms_receiver);
 }
@@ -490,8 +614,7 @@ View* tpms_view_receiver_get_view(TPMSReceiver* tpms_receiver) {
 uint16_t tpms_view_receiver_get_idx_menu(TPMSReceiver* tpms_receiver) {
     furi_assert(tpms_receiver);
     uint32_t idx = 0;
-    with_view_model(
-        tpms_receiver->view, TPMSReceiverModel * model, { idx = model->idx; }, false);
+    with_view_model(tpms_receiver->view, TPMSReceiverModel * model, { idx = model->idx; }, false);
     return idx;
 }
 
@@ -506,4 +629,17 @@ void tpms_view_receiver_set_idx_menu(TPMSReceiver* tpms_receiver, uint16_t idx) 
         },
         true);
     tpms_view_receiver_update_offset(tpms_receiver);
+}
+
+void tpms_view_receiver_set_relearn_config(
+    TPMSReceiver* tpms_receiver,
+    TPMSRelearn relearn,
+    TPMSRelearnPattern pattern,
+    TPMSRelearnRuntime runtime,
+    TPMSRelearnDuty duty) {
+    furi_assert(tpms_receiver);
+    tpms_receiver->relearn = relearn;
+    tpms_receiver->relearn_pattern = pattern;
+    tpms_receiver->relearn_runtime = runtime;
+    tpms_receiver->relearn_duty = duty;
 }

@@ -2,10 +2,10 @@
 
 #include <lib/subghz/protocols/base.h>
 
+#include "tpms_generic.h"
 #include <lib/subghz/blocks/const.h>
 #include <lib/subghz/blocks/decoder.h>
 #include <lib/subghz/blocks/encoder.h>
-#include "tpms_generic.h"
 #include <lib/subghz/blocks/math.h>
 
 #define TPMS_PROTOCOL_SCHRADER_GG4_NAME "Schrader GG4"
@@ -20,7 +20,8 @@ extern const SubGhzProtocol tpms_protocol_schrader_gg4;
 /**
  * Allocate TPMSProtocolDecoderSchraderGG4.
  * @param environment Pointer to a SubGhzEnvironment instance
- * @return TPMSProtocolDecoderSchraderGG4* pointer to a TPMSProtocolDecoderSchraderGG4 instance
+ * @return TPMSProtocolDecoderSchraderGG4* pointer to a
+ * TPMSProtocolDecoderSchraderGG4 instance
  */
 void* tpms_protocol_decoder_schrader_gg4_alloc(SubGhzEnvironment* environment);
 
@@ -55,7 +56,8 @@ uint8_t tpms_protocol_decoder_schrader_gg4_get_hash_data(void* context);
  * Serialize data TPMSProtocolDecoderSchraderGG4.
  * @param context Pointer to a TPMSProtocolDecoderSchraderGG4 instance
  * @param flipper_format Pointer to a FlipperFormat instance
- * @param preset The modulation on which the signal was received, SubGhzRadioPreset
+ * @param preset The modulation on which the signal was received,
+ * SubGhzRadioPreset
  * @return status
  */
 SubGhzProtocolStatus tpms_protocol_decoder_schrader_gg4_serialize(

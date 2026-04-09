@@ -3,22 +3,22 @@
 #include "helpers/tpms_types.h"
 
 #include "scenes/tpms_scene.h"
+#include "tpms_history.h"
+#include "views/tpms_receiver.h"
+#include "views/tpms_receiver_info.h"
 #include <gui/gui.h>
-#include <gui/view_dispatcher.h>
-#include <gui/scene_manager.h>
 #include <gui/modules/submenu.h>
 #include <gui/modules/variable_item_list.h>
 #include <gui/modules/widget.h>
+#include <gui/scene_manager.h>
+#include <gui/view_dispatcher.h>
 #include <notification/notification_messages.h>
-#include "views/tpms_receiver.h"
-#include "views/tpms_receiver_info.h"
-#include "tpms_history.h"
 
+#include <lib/subghz/receiver.h>
+#include <lib/subghz/registry.h>
 #include <lib/subghz/subghz_setting.h>
 #include <lib/subghz/subghz_worker.h>
-#include <lib/subghz/receiver.h>
 #include <lib/subghz/transmitter.h>
-#include <lib/subghz/registry.h>
 
 #include "helpers/radio_device_loader.h"
 
@@ -56,7 +56,9 @@ struct TPMSApp {
     TPMSLock lock;
     SubGhzSetting* setting;
     TPMSRelearn relearn;
-    TPMSRelearnType relearn_type;
+    TPMSRelearnPattern relearn_pattern;
+    TPMSRelearnRuntime relearn_runtime;
+    TPMSRelearnDuty relearn_duty;
 };
 
 void tpms_preset_init(

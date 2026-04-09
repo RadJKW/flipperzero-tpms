@@ -1,13 +1,13 @@
 #include "tpms_history.h"
-#include <flipper_format/flipper_format_i.h>
-#include <lib/toolbox/stream/stream.h>
-#include <lib/subghz/receiver.h>
 #include "protocols/tpms_generic.h"
+#include <flipper_format/flipper_format_i.h>
+#include <lib/subghz/receiver.h>
+#include <lib/toolbox/stream/stream.h>
 
 #include <furi.h>
 
 #define TPMS_HISTORY_MAX 50
-#define TAG "TPMSHistory"
+#define TAG              "TPMSHistory"
 
 typedef struct {
     FuriString* item_str;

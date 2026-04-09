@@ -27,9 +27,12 @@ Examples in normal environmental conditions:
 3000878456074d01
 
 Data layout:
- * | Byte 0    | Byte 1    | Byte 2    | Byte 3    | Byte 4    | Byte 5    | Byte 6    | Byte 7    |
- * | --------- | --------- | --------- | --------- | --------- | --------- | --------- | --------- |
- * | SSSS SSSS | IIII IIII | IIII IIII | IIII IIII | IIII IIII | PPPP PPPP | TTTT TTTT | CCCC CCCC |
+ * | Byte 0    | Byte 1    | Byte 2    | Byte 3    | Byte 4    | Byte 5    |
+Byte 6    | Byte 7    |
+ * | --------- | --------- | --------- | --------- | --------- | --------- |
+--------- | --------- |
+ * | SSSS SSSS | IIII IIII | IIII IIII | IIII IIII | IIII IIII | PPPP PPPP |
+TTTT TTTT | CCCC CCCC |
  *
 
 - The preamble is 0b000
@@ -40,7 +43,7 @@ Data layout:
 - C: 8 bit Checksum (CRC8, Poly 0x7, Init 0x0)
 */
 
-#define PREAMBLE 0b000
+#define PREAMBLE          0b000
 #define PREAMBLE_BITS_LEN 3
 
 static const SubGhzBlockConst tpms_protocol_schrader_gg4_const = {
@@ -201,7 +204,8 @@ void tpms_protocol_decoder_schrader_gg4_feed(void* context, bool level, uint32_t
                 instance->manchester_saved_state, event, &instance->manchester_saved_state, &bit);
             if(!have_bit) return;
 
-            // Invert value, due to signal is Manchester II and decoder is Manchester I
+            // Invert value, due to signal is Manchester II and decoder is Manchester
+            // I
             bit = !bit;
         }
     }

@@ -1,8 +1,8 @@
 #include "tpms_app_i.h"
 
+#include "protocols/protocol_items.h"
 #include <furi.h>
 #include <furi_hal.h>
-#include "protocols/protocol_items.h"
 
 static bool tpms_app_custom_event_callback(void* context, uint32_t event) {
     furi_assert(context);
@@ -31,8 +31,6 @@ TPMSApp* tpms_app_alloc() {
     // View Dispatcher
     app->view_dispatcher = view_dispatcher_alloc();
     app->scene_manager = scene_manager_alloc(&tpms_scene_handlers, app);
-    view_dispatcher_enable_queue(app->view_dispatcher);
-
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(
         app->view_dispatcher, tpms_app_custom_event_callback);
@@ -74,13 +72,13 @@ TPMSApp* tpms_app_alloc() {
         TPMSViewReceiverInfo,
         tpms_view_receiver_info_get_view(app->tpms_receiver_info));
 
-    //init setting
+    // init setting
     app->setting = subghz_setting_alloc();
 
-    //ToDo FIX  file name setting
+    // ToDo FIX  file name setting
     subghz_setting_load(app->setting, EXT_PATH("subghz/assets/setting_user"));
 
-    //init Worker & Protocol & History
+    // init Worker & Protocol & History
     app->lock = TPMSLockOff;
     app->txrx = malloc(sizeof(TPMSTxRx));
     app->txrx->preset = malloc(sizeof(SubGhzRadioPreset));
@@ -94,6 +92,11 @@ TPMSApp* tpms_app_alloc() {
     subghz_environment_set_protocol_registry(
         app->txrx->environment, (void*)&tpms_protocol_registry);
     app->txrx->receiver = subghz_receiver_alloc_init(app->txrx->environment);
+
+    app->relearn = TPMSRelearnOn;
+    app->relearn_pattern = TPMSRelearnPatternContinuous;
+    app->relearn_runtime = TPMSRelearnRuntime3s;
+    app->relearn_duty = TPMSRelearnDuty50;
 
     subghz_devices_init();
 
@@ -145,10 +148,10 @@ void tpms_app_free(TPMSApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, TPMSViewReceiverInfo);
     tpms_view_receiver_info_free(app->tpms_receiver_info);
 
-    //setting
+    // setting
     subghz_setting_free(app->setting);
 
-    //Worker & Protocol & History
+    // Worker & Protocol & History
     subghz_receiver_free(app->txrx->receiver);
     subghz_environment_free(app->txrx->environment);
     tpms_history_free(app->txrx->history);
