@@ -6,24 +6,26 @@
 #define ADD_SCENE(prefix, name, id) TPMSScene##id,
 typedef enum {
 #include "tpms_scene_config.h"
-    TPMSSceneNum,
+  TPMSSceneNum,
 } TPMSScene;
 #undef ADD_SCENE
 
 extern const SceneManagerHandlers tpms_scene_handlers;
 
 // Generate scene on_enter handlers declaration
-#define ADD_SCENE(prefix, name, id) void prefix##_scene_##name##_on_enter(void*);
+#define ADD_SCENE(prefix, name, id)                                            \
+  void prefix##_scene_##name##_on_enter(void *);
 #include "tpms_scene_config.h"
 #undef ADD_SCENE
 
 // Generate scene on_event handlers declaration
-#define ADD_SCENE(prefix, name, id) \
-    bool prefix##_scene_##name##_on_event(void* context, SceneManagerEvent event);
+#define ADD_SCENE(prefix, name, id)                                            \
+  bool prefix##_scene_##name##_on_event(void *context, SceneManagerEvent event);
 #include "tpms_scene_config.h"
 #undef ADD_SCENE
 
 // Generate scene on_exit handlers declaration
-#define ADD_SCENE(prefix, name, id) void prefix##_scene_##name##_on_exit(void* context);
+#define ADD_SCENE(prefix, name, id)                                            \
+  void prefix##_scene_##name##_on_exit(void *context);
 #include "tpms_scene_config.h"
 #undef ADD_SCENE
