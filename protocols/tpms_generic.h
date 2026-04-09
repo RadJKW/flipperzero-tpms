@@ -19,17 +19,17 @@ extern "C" {
 typedef struct TPMSBlockGeneric TPMSBlockGeneric;
 
 struct TPMSBlockGeneric {
-  const char *protocol_name;
-  uint64_t data;
-  uint8_t data_count_bit;
+    const char* protocol_name;
+    uint64_t data;
+    uint8_t data_count_bit;
 
-  uint32_t timestamp;
+    uint32_t timestamp;
 
-  uint32_t id;
-  uint8_t battery_low;
-  // bool storage;
-  float pressure;    // bar
-  float temperature; // celsius
+    uint32_t id;
+    uint8_t battery_low;
+    // bool storage;
+    float pressure; // bar
+    float temperature; // celsius
 };
 
 /**
@@ -37,8 +37,7 @@ struct TPMSBlockGeneric {
  * @param preset_name name preset
  * @param preset_str Output name preset
  */
-void tpms_block_generic_get_preset_name(const char *preset_name,
-                                        FuriString *preset_str);
+void tpms_block_generic_get_preset_name(const char* preset_name, FuriString* preset_str);
 
 /**
  * Serialize data TPMSBlockGeneric.
@@ -48,9 +47,10 @@ void tpms_block_generic_get_preset_name(const char *preset_name,
  * SubGhzRadioPreset
  * @return status
  */
-SubGhzProtocolStatus tpms_block_generic_serialize(TPMSBlockGeneric *instance,
-                                                  FlipperFormat *flipper_format,
-                                                  SubGhzRadioPreset *preset);
+SubGhzProtocolStatus tpms_block_generic_serialize(
+    TPMSBlockGeneric* instance,
+    FlipperFormat* flipper_format,
+    SubGhzRadioPreset* preset);
 
 /**
  * Deserialize data TPMSBlockGeneric.
@@ -59,8 +59,7 @@ SubGhzProtocolStatus tpms_block_generic_serialize(TPMSBlockGeneric *instance,
  * @return status
  */
 SubGhzProtocolStatus
-tpms_block_generic_deserialize(TPMSBlockGeneric *instance,
-                               FlipperFormat *flipper_format);
+    tpms_block_generic_deserialize(TPMSBlockGeneric* instance, FlipperFormat* flipper_format);
 
 /**
  * Deserialize data TPMSBlockGeneric.
@@ -69,10 +68,10 @@ tpms_block_generic_deserialize(TPMSBlockGeneric *instance,
  * @param count_bit Count bit protocol
  * @return status
  */
-SubGhzProtocolStatus
-tpms_block_generic_deserialize_check_count_bit(TPMSBlockGeneric *instance,
-                                               FlipperFormat *flipper_format,
-                                               uint16_t count_bit);
+SubGhzProtocolStatus tpms_block_generic_deserialize_check_count_bit(
+    TPMSBlockGeneric* instance,
+    FlipperFormat* flipper_format,
+    uint16_t count_bit);
 
 #ifdef __cplusplus
 }
