@@ -40,3 +40,10 @@ uint16_t tpms_view_receiver_get_idx_menu(TPMSReceiver* tpms_receiver);
 void tpms_view_receiver_set_idx_menu(TPMSReceiver* tpms_receiver, uint16_t idx);
 
 void tpms_view_receiver_exit(void* context);
+
+void tpms_view_receiver_set_relearn_config(
+    TPMSReceiver* tpms_receiver,
+    TPMSRelearn relearn,
+    TPMSRelearnPattern pattern,
+    TPMSRelearnRuntime runtime,
+    TPMSRelearnDuty duty);

@@ -56,7 +56,9 @@ struct TPMSApp {
     TPMSLock lock;
     SubGhzSetting* setting;
     TPMSRelearn relearn;
-    TPMSRelearnType relearn_type;
+    TPMSRelearnPattern relearn_pattern;
+    TPMSRelearnRuntime relearn_runtime;
+    TPMSRelearnDuty relearn_duty;
 };
 
 void tpms_preset_init(

@@ -31,8 +31,6 @@ TPMSApp* tpms_app_alloc() {
     // View Dispatcher
     app->view_dispatcher = view_dispatcher_alloc();
     app->scene_manager = scene_manager_alloc(&tpms_scene_handlers, app);
-    view_dispatcher_enable_queue(app->view_dispatcher);
-
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(
         app->view_dispatcher, tpms_app_custom_event_callback);
@@ -94,6 +92,11 @@ TPMSApp* tpms_app_alloc() {
     subghz_environment_set_protocol_registry(
         app->txrx->environment, (void*)&tpms_protocol_registry);
     app->txrx->receiver = subghz_receiver_alloc_init(app->txrx->environment);
+
+    app->relearn = TPMSRelearnOn;
+    app->relearn_pattern = TPMSRelearnPatternContinuous;
+    app->relearn_runtime = TPMSRelearnRuntime3s;
+    app->relearn_duty = TPMSRelearnDuty50;
 
     subghz_devices_init();
 
