@@ -118,6 +118,7 @@ void tpms_scene_receiver_on_enter(void* context) {
     }
 
     tpms_view_receiver_set_lock(app->tpms_receiver, app->lock);
+    tpms_view_receiver_set_relearn(app->tpms_receiver, app->relearn);
 
     //Load history to receiver
     tpms_view_receiver_exit(app->tpms_receiver);

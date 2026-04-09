@@ -82,6 +82,8 @@ TPMSApp* tpms_app_alloc() {
 
     //init Worker & Protocol & History
     app->lock = TPMSLockOff;
+    app->relearn = TPMSRelearnOff;
+    app->relearn_type = TPMSRelearnTypeCommon;
     app->txrx = malloc(sizeof(TPMSTxRx));
     app->txrx->preset = malloc(sizeof(SubGhzRadioPreset));
     app->txrx->preset->name = furi_string_alloc();

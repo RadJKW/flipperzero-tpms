@@ -12,6 +12,8 @@ void tpms_view_receiver_set_rssi(TPMSReceiver* instance, float rssi);
 
 void tpms_view_receiver_set_lock(TPMSReceiver* tpms_receiver, TPMSLock keyboard);
 
+void tpms_view_receiver_set_relearn(TPMSReceiver* tpms_receiver, TPMSRelearn relearn);
+
 void tpms_view_receiver_set_callback(
     TPMSReceiver* tpms_receiver,
     TPMSReceiverCallback callback,
