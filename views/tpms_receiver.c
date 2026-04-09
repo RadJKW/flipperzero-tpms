@@ -224,6 +224,19 @@ static void tpms_view_rssi_draw(Canvas* canvas, TPMSReceiverModel* model) {
     }
 }
 
+static void tpms_view_receiver_draw_relearn_status(
+    Canvas* canvas,
+    TPMSReceiverModel* model,
+    FuriString* str_buff) {
+    if(!model->relearn_active) {
+        return;
+    }
+
+    furi_string_set(str_buff, model->relearn_status_str);
+    elements_string_fit_width(canvas, str_buff, 84);
+    canvas_draw_str(canvas, 44, 62, furi_string_get_cstr(str_buff));
+}
+
 void tpms_view_receiver_draw(Canvas* canvas, TPMSReceiverModel* model) {
     canvas_clear(canvas);
     canvas_set_color(canvas, ColorBlack);
@@ -255,7 +268,6 @@ void tpms_view_receiver_draw(Canvas* canvas, TPMSReceiverModel* model) {
     if(scrollbar) {
         elements_scrollbar_pos(canvas, 128, 0, 49, model->idx, model->history_item);
     }
-    furi_string_free(str_buff);
 
     canvas_set_color(canvas, ColorBlack);
 
@@ -267,10 +279,6 @@ void tpms_view_receiver_draw(Canvas* canvas, TPMSReceiverModel* model) {
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str(canvas, 44, 10, model->external_radio ? "Ext" : "Int");
         canvas_draw_str(canvas, 70, 9, "-> to relearn");
-    }
-
-    if(model->relearn_active) {
-        canvas_draw_str(canvas, 2, 62, furi_string_get_cstr(model->relearn_status_str));
     }
 
     // Draw RSSI
@@ -299,11 +307,18 @@ void tpms_view_receiver_draw(Canvas* canvas, TPMSReceiverModel* model) {
         canvas_draw_str(canvas, 74, 62, "Unlocked");
         break;
     default:
-        canvas_draw_str(canvas, 44, 62, furi_string_get_cstr(model->frequency_str));
-        canvas_draw_str(canvas, 79, 62, furi_string_get_cstr(model->preset_str));
-        canvas_draw_str(canvas, 96, 62, furi_string_get_cstr(model->history_stat_str));
+        if(model->relearn_active) {
+            tpms_view_receiver_draw_relearn_status(canvas, model, str_buff);
+        } else {
+            canvas_draw_str(canvas, 44, 62, furi_string_get_cstr(model->frequency_str));
+            canvas_draw_str(canvas, 79, 62, furi_string_get_cstr(model->preset_str));
+            canvas_draw_str(canvas, 96, 62, furi_string_get_cstr(model->history_stat_str));
+        }
         break;
     }
+
+    furi_string_reset(str_buff);
+    furi_string_free(str_buff);
 }
 
 static void tpms_view_receiver_lock_timer_callback(void* context) {
